@@ -1,0 +1,7 @@
+spring:
+  application:
+    name: exchange-service
+bybit:
+  api:
+    key: sSGYodkH8tHPoyerx9vwc9jW2hcs7ox2u4FU
+    secret: sSGYodkH8tHPoyerx9vwc9jW2hcs7ox2u4FU
