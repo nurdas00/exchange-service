@@ -1,7 +1,7 @@
 package nur.kg.exchangeservice;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import nur.kg.exchangeservice.exchange.BybitMarketSupplier;
+import nur.kg.exchangeservice.market.BybitMarketSupplier;
 import nur.kg.exchangeservice.enums.MarketSymbol;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
