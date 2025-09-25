@@ -1,4 +1,6 @@
-package nur.kg.exchangeservice.domain;
+package nur.kg.exchangeservice.domain.model;
+
+import nur.kg.exchangeservice.domain.enums.Symbol;
 
 import java.math.BigDecimal;
 import java.time.Instant;

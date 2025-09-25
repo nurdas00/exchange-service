@@ -3,13 +3,18 @@ package nur.kg.exchangeservice.runner;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
-import nur.kg.exchangeservice.domain.Ticker;
+import nur.kg.exchangeservice.client.BotClient;
+import nur.kg.exchangeservice.domain.dto.TickerDto;
+import nur.kg.exchangeservice.domain.enums.Exchange;
+import nur.kg.exchangeservice.domain.model.Ticker;
 import nur.kg.exchangeservice.market.ExchangeClient;
 import org.springframework.context.SmartLifecycle;
 import org.springframework.stereotype.Component;
 import reactor.core.Disposable;
 import reactor.core.Disposables;
+import reactor.core.publisher.Flux;
 
+import java.time.Duration;
 import java.util.List;
 
 @Log4j2
@@ -18,6 +23,7 @@ import java.util.List;
 public class TickerRunner implements SmartLifecycle {
 
     private final List<ExchangeClient> sources;
+    private final BotClient bot;
     private Disposable.Composite bag;
 
     @Override
@@ -28,18 +34,17 @@ public class TickerRunner implements SmartLifecycle {
         }
         bag = Disposables.composite();
 
-        for (ExchangeClient s : sources) {
-            Disposable d = s.streamTickers()
-                    .doOnSubscribe(sub -> log.info("Start market-data stream: {}", s.getExchange().name()))
-                    .doOnError(e -> log.error("Stream error ({}): {}", s.getExchange().name(), e.toString()))
-                    .subscribe(
-                            t -> onTick(s.getExchange().name(), t),
-                            e -> onError(s.getExchange().name(), e)
-                    );
+        Flux<TickerDto> dtoStream = Flux.merge(
+                        sources.stream().map(src ->
+                                src.streamTickers()
+                                        .map(t -> toDto(src.getExchange(), t))
+                        ).toList()
+                )
+                .onBackpressureLatest()
+                .sample(Duration.ofMillis(100));
 
-            bag.add(d);
-        }
-
+        Disposable d = bot.sendData(dtoStream).subscribe();
+        bag.add(d);
         log.info("TickerRunner started: {} sources", sources.size());
     }
 
@@ -57,12 +62,8 @@ public class TickerRunner implements SmartLifecycle {
         return bag != null && !bag.isDisposed();
     }
 
-    protected void onTick(String sourceName, Ticker t) {
-        //TODO: send to bot
-        log.debug("[{}] {}", sourceName, t);
+    private static TickerDto toDto(Exchange exchange, Ticker t) {
+        return new TickerDto(exchange, t.symbol(), t.last(), t.ts());
     }
 
-    protected void onError(String sourceName, Throwable e) {
-        log.error("Market-data stream failed for {}: {}", sourceName, e.getMessage(), e);
-    }
 }
