@@ -42,7 +42,6 @@ public class BybitClient implements ExchangeClient {
                     .websocket(WebsocketClientSpec.builder().handlePing(true).build())
                     .uri(bybitWsUri)
                     .handle((in, out) -> {
-                        // inbound: читаем кадры, парсим, эмитим в sink
                         Flux<String> inbound = in.receive().asString();
 
                         Mono<Void> process = inbound
@@ -50,21 +49,19 @@ public class BybitClient implements ExchangeClient {
                                     try {
                                         JsonNode n = mapper.readTree(text);
                                         Ticker t = tryParseTicker(n);
-                                        if (t != null /* и символ подходит */) {
+                                        if (t != null ) {
                                             sink.next(t);
                                         }
                                     } catch (Exception ignore) { }
                                 })
                                 .doOnError(sink::error)
-                                .then(); // превратили в Mono<Void>
+                                .then();
 
-                        // outbound: отправили subscribe и пинги
                         Mono<Void> send = out.sendString(Flux.concat(
                                 Mono.just(subscribeMsg),
                                 Flux.interval(Duration.ofSeconds(20)).map(i -> "{\"op\":\"ping\"}")
                         )).then();
 
-                        // важно вернуть Оба, без subscribe()
                         return Mono.when(send, process);
 
                     }).then();
