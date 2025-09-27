@@ -1,10 +1,10 @@
 package nur.kg.exchangeservice.market;
 
-import nur.kg.exchangeservice.domain.request.OrderRequest;
-import nur.kg.exchangeservice.domain.response.OrderResponse;
-import nur.kg.exchangeservice.domain.enums.Symbol;
-import nur.kg.exchangeservice.domain.model.Ticker;
-import nur.kg.exchangeservice.domain.enums.Exchange;
+import nur.kg.domain.request.OrderRequest;
+import nur.kg.domain.response.OrderResponse;
+import nur.kg.domain.enums.Symbol;
+import nur.kg.domain.model.Ticker;
+import nur.kg.domain.enums.Exchange;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 

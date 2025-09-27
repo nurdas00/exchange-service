@@ -1,6 +1,6 @@
 package nur.kg.exchangeservice.client;
 
-import nur.kg.exchangeservice.domain.dto.TickerDto;
+import nur.kg.domain.dto.TickerDto;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;

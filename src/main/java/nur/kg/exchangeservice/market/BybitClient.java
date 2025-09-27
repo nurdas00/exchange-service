@@ -2,11 +2,11 @@ package nur.kg.exchangeservice.market;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import nur.kg.exchangeservice.domain.request.OrderRequest;
-import nur.kg.exchangeservice.domain.response.OrderResponse;
-import nur.kg.exchangeservice.domain.enums.Symbol;
-import nur.kg.exchangeservice.domain.model.Ticker;
-import nur.kg.exchangeservice.domain.enums.Exchange;
+import nur.kg.domain.enums.Exchange;
+import nur.kg.domain.enums.Symbol;
+import nur.kg.domain.model.Ticker;
+import nur.kg.domain.request.OrderRequest;
+import nur.kg.domain.response.OrderResponse;
 import org.springframework.stereotype.Component;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
