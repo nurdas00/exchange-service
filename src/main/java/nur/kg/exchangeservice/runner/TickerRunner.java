@@ -3,11 +3,12 @@ package nur.kg.exchangeservice.runner;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
-import nur.kg.exchangeservice.client.BotClient;
 import nur.kg.domain.dto.TickerDto;
 import nur.kg.domain.enums.Exchange;
+import nur.kg.domain.enums.Symbol;
 import nur.kg.domain.model.Ticker;
-import nur.kg.exchangeservice.market.ExchangeClient;
+import nur.kg.exchangeservice.client.BotClient;
+import nur.kg.exchangeservice.market.data.MarketDataClient;
 import org.springframework.context.SmartLifecycle;
 import org.springframework.stereotype.Component;
 import reactor.core.Disposable;
@@ -16,13 +17,14 @@ import reactor.core.publisher.Flux;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Set;
 
 @Log4j2
 @Component
 @RequiredArgsConstructor
 public class TickerRunner implements SmartLifecycle {
 
-    private final List<ExchangeClient> sources;
+    private final List<MarketDataClient> sources;
     private final BotClient bot;
     private Disposable.Composite bag;
 
@@ -33,11 +35,11 @@ public class TickerRunner implements SmartLifecycle {
             return;
         }
         bag = Disposables.composite();
-
+        Set<Symbol> symbols = Set.of(Symbol.values());
         Flux<TickerDto> dtoStream = Flux.merge(
                         sources.stream().map(src ->
-                                src.streamTickers()
-                                        .map(t -> toDto(src.getExchange(), t))
+                                src.streamTickers(symbols)
+                                        .map(t -> toDto(src.exchange(), t))
                         ).toList()
                 )
                 .onBackpressureLatest()

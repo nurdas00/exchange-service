@@ -1,20 +1,16 @@
-package nur.kg.exchangeservice.market;
+package nur.kg.exchangeservice.market.data;
 
-import com.bybit.api.client.domain.trade.response.OrderResponse;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
 import nur.kg.domain.enums.Exchange;
 import nur.kg.domain.enums.Symbol;
 import nur.kg.domain.model.Ticker;
-import nur.kg.domain.request.OrderRequest;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.MediaType;
+import nur.kg.exchangeservice.config.BybitProperties;
 import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.socket.WebSocketMessage;
 import org.springframework.web.reactive.socket.client.ReactorNettyWebSocketClient;
-import org.springframework.web.reactive.socket.client.WebSocketClient;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -24,25 +20,24 @@ import java.math.BigDecimal;
 import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.List;
+import java.util.Set;
 
 @Component
-public class BybitClient implements ExchangeClient {
+@RequiredArgsConstructor
+public class BybitMarketDataClient implements MarketDataClient {
 
-    @Value("${bybit.url}")
-    private String bybitWsUri;
     private URI webSocketUri;
-    private final WebClient client = WebClient.builder().baseUrl(bybitWsUri).build();
-    private final WebSocketClient ws = new ReactorNettyWebSocketClient();
-    private final ObjectMapper mapper = new ObjectMapper();
+    private final ObjectMapper mapper;
+    private final BybitProperties properties;
+    private final ReactorNettyWebSocketClient ws = new ReactorNettyWebSocketClient();
 
     @PostConstruct
     public void init() {
-        webSocketUri = URI.create(bybitWsUri);
+        webSocketUri = URI.create(properties.wsUrl());
     }
+
     @Override
-    public Flux<Ticker> streamTickers() {
-        List<Symbol> symbols = List.of(Symbol.values());
+    public Flux<Ticker> streamTickers(Set<Symbol> symbols) {
         final String subscribeMsg = """
                 {"op":"subscribe","args":%s}
                 """.formatted(
@@ -112,23 +107,9 @@ public class BybitClient implements ExchangeClient {
         }
     }
 
-    @Override
-    public Mono<OrderResponse> placeOrder(OrderRequest request) {
-        return client.post()
-                .uri("/v5/order/create") // example
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(request)
-                .retrieve()
-                .bodyToMono(OrderResponse.class);
-    }
 
     @Override
-    public Mono<Boolean> cancelAll(Symbol symbol) {
-        return null;
-    }
-
-    @Override
-    public Exchange getExchange() {
+    public Exchange exchange() {
         return Exchange.BYBIT;
     }
 }
