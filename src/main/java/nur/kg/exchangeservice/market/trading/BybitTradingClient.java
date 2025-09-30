@@ -8,6 +8,7 @@ import com.bybit.api.client.domain.trade.Side;
 import com.bybit.api.client.domain.trade.TimeInForce;
 import com.bybit.api.client.domain.trade.request.TradeOrderRequest;
 import com.bybit.api.client.domain.trade.response.OrderResponse;
+import com.bybit.api.client.restApi.BybitApiAsyncTradeRestClient;
 import com.bybit.api.client.service.BybitApiClientFactory;
 import lombok.RequiredArgsConstructor;
 import nur.kg.domain.enums.Exchange;
@@ -37,22 +38,26 @@ public class BybitTradingClient implements TradingClient {
                 .build();
 
         return Mono.create(sink -> {
-            var async = factory().newAsyncTradeRestClient();
-            async.createOrder(req, resp -> sink.success());
+            BybitApiAsyncTradeRestClient client = factory().newAsyncTradeRestClient();
+            client.createOrder(req, resp -> sink.success());
         });
-    }
-
-    private BybitApiClientFactory factory() {
-        var domain = properties.domain().equalsIgnoreCase("MAINNET")
-                ? BybitApiConfig.MAINNET_DOMAIN
-                : BybitApiConfig.TESTNET_DOMAIN;
-        return BybitApiClientFactory.newInstance(
-                properties.apiKey(), properties.apiSecret(), domain, true);
     }
 
     @Override
     public Mono<Boolean> cancelAll(Symbol symbol) {
-        return null;
+        return Mono.create(sink -> {
+            BybitApiAsyncTradeRestClient client = factory().newAsyncTradeRestClient();
+            TradeOrderRequest cancelAllOrdersRequest = TradeOrderRequest.builder().symbol(symbol.name()).build();
+            client.cancelAllOrder(cancelAllOrdersRequest, resp -> sink.success());
+        });
+    }
+
+    private BybitApiClientFactory factory() {
+        String domain = properties.domain().equalsIgnoreCase("MAINNET")
+                ? BybitApiConfig.MAINNET_DOMAIN
+                : BybitApiConfig.TESTNET_DOMAIN;
+        return BybitApiClientFactory.newInstance(
+                properties.apiKey(), properties.apiSecret(), domain, true);
     }
 
     @Override
