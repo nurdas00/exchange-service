@@ -2,6 +2,7 @@ package nur.kg.exchangeservice.client;
 
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
 import nur.kg.domain.dto.TickerDto;
 import nur.kg.exchangeservice.config.AppProperties;
 import org.springframework.http.MediaType;
@@ -13,6 +14,7 @@ import reactor.util.retry.Retry;
 
 import java.time.Duration;
 
+@Log4j2
 @Component
 @RequiredArgsConstructor
 public class BotClient {
@@ -28,7 +30,7 @@ public class BotClient {
     public Mono<Void> sendData(Flux<TickerDto> stream) {
 
         return webClient.post()
-                .uri("api/tickers/stream")
+                .uri("/api/tickers/stream")
                 .contentType(MediaType.APPLICATION_NDJSON)
                 .body(stream, TickerDto.class)
                 .retrieve()

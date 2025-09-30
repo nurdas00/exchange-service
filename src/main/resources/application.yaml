@@ -1,9 +1,6 @@
 spring:
   application:
     name: exchange-service
-  mvc:
-    servlet:
-      path: api
 
 bybit:
   api:
@@ -12,4 +9,7 @@ bybit:
   url: wss://stream-testnet.bybit.com/v5/public/spot
 
 bot:
-  url: localhost:8081
+  url: 'http://localhost:8081'
+logging:
+  level:
+    root: INFO
