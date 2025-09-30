@@ -1,21 +1,27 @@
 package nur.kg.exchangeservice.market;
 
+import com.bybit.api.client.domain.trade.response.OrderResponse;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.PostConstruct;
 import nur.kg.domain.enums.Exchange;
 import nur.kg.domain.enums.Symbol;
 import nur.kg.domain.model.Ticker;
 import nur.kg.domain.request.OrderRequest;
-import nur.kg.domain.response.OrderResponse;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.socket.WebSocketMessage;
+import org.springframework.web.reactive.socket.client.ReactorNettyWebSocketClient;
+import org.springframework.web.reactive.socket.client.WebSocketClient;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.netty.http.client.HttpClient;
-import reactor.netty.http.client.WebsocketClientSpec;
 import reactor.util.retry.Retry;
 
 import java.math.BigDecimal;
+import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -23,9 +29,17 @@ import java.util.List;
 @Component
 public class BybitClient implements ExchangeClient {
 
-    private final String bybitWsUri = "wss://stream-testnet.bybit.com/v5/public/spot";
+    @Value("${bybit.url}")
+    private String bybitWsUri;
+    private URI webSocketUri;
+    private final WebClient client = WebClient.builder().baseUrl(bybitWsUri).build();
+    private final WebSocketClient ws = new ReactorNettyWebSocketClient();
     private final ObjectMapper mapper = new ObjectMapper();
 
+    @PostConstruct
+    public void init() {
+        webSocketUri = URI.create(bybitWsUri);
+    }
     @Override
     public Flux<Ticker> streamTickers() {
         List<Symbol> symbols = List.of(Symbol.values());
@@ -38,46 +52,37 @@ public class BybitClient implements ExchangeClient {
         );
 
         return Flux.<Ticker>create(sink -> {
-            Mono<Void> session = HttpClient.create()
-                    .websocket(WebsocketClientSpec.builder().handlePing(true).build())
-                    .uri(bybitWsUri)
-                    .handle((in, out) -> {
-                        Flux<String> inbound = in.receive().asString();
+            Mono<Void> sessionMono = ws.execute(webSocketUri, wsSession -> {
+                Flux<WebSocketMessage> outbound = Flux.concat(
+                        Mono.fromSupplier(() -> wsSession.textMessage(subscribeMsg)),
+                        Flux.interval(Duration.ofSeconds(20)).map(i -> wsSession.textMessage("{\"op\":\"ping\"}"))
+                );
 
-                        Mono<Void> process = inbound
-                                .doOnNext(text -> {
-                                    try {
-                                        JsonNode n = mapper.readTree(text);
-                                        Ticker t = tryParseTicker(n);
-                                        if (t != null ) {
-                                            sink.next(t);
-                                        }
-                                    } catch (Exception ignore) { }
-                                })
-                                .doOnError(sink::error)
-                                .then();
+                Mono<Void> send = wsSession.send(outbound).then();
 
-                        Mono<Void> send = out.sendString(Flux.concat(
-                                Mono.just(subscribeMsg),
-                                Flux.interval(Duration.ofSeconds(20)).map(i -> "{\"op\":\"ping\"}")
-                        )).then();
+                Mono<Void> receive = wsSession.receive()
+                        .map(WebSocketMessage::getPayloadAsText)
+                        .doOnNext(text -> {
+                            try {
+                                JsonNode n = mapper.readTree(text);
+                                Ticker t = parseTicker(n);
+                                if (t != null) sink.next(t);
+                            } catch (Exception ignore) {
+                            }
+                        })
+                        .then();
 
-                        return Mono.when(send, process);
+                return Mono.when(send, receive);
+            });
 
-                    }).then();
-
-            Disposable disposable = session
-                    .doOnError(sink::error)
-                    .doFinally(st -> sink.complete())
-                    .subscribe();
-
-            sink.onDispose(disposable);
+            Disposable d = sessionMono.subscribe(null, sink::error, sink::complete);
+            sink.onDispose(d);
         }).retryWhen(
                 Retry.backoff(Long.MAX_VALUE, Duration.ofSeconds(1)).maxBackoff(Duration.ofSeconds(30))
-        ).name("bybit-tickers");
+        ).name("bybit-tickers-webflux");
     }
 
-    private Ticker tryParseTicker(JsonNode frame) {
+    private Ticker parseTicker(JsonNode frame) {
         if (frame == null || !frame.hasNonNull("topic")) {
             return null;
         }
@@ -108,8 +113,13 @@ public class BybitClient implements ExchangeClient {
     }
 
     @Override
-    public Mono<OrderResponse> placeOrder(OrderRequest intent) {
-        return null;
+    public Mono<OrderResponse> placeOrder(OrderRequest request) {
+        return client.post()
+                .uri("/v5/order/create") // example
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .retrieve()
+                .bodyToMono(OrderResponse.class);
     }
 
     @Override

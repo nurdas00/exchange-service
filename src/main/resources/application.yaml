@@ -1,7 +1,15 @@
 spring:
   application:
     name: exchange-service
+  mvc:
+    servlet:
+      path: api
+
 bybit:
   api:
     key: sSGYodkH8tHPoyerx9vwc9jW2hcs7ox2u4FU
     secret: sSGYodkH8tHPoyerx9vwc9jW2hcs7ox2u4FU
+  url: wss://stream-testnet.bybit.com/v5/public/spot
+
+bot:
+  url: localhost:8081

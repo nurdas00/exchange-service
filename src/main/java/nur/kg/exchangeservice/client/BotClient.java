@@ -1,6 +1,9 @@
 package nur.kg.exchangeservice.client;
 
+import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
 import nur.kg.domain.dto.TickerDto;
+import nur.kg.exchangeservice.config.AppProperties;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -11,9 +14,16 @@ import reactor.util.retry.Retry;
 import java.time.Duration;
 
 @Component
+@RequiredArgsConstructor
 public class BotClient {
 
-    private final WebClient webClient = WebClient.builder().baseUrl("localhost:8081").build();
+    private WebClient webClient;
+    private final AppProperties config;
+
+    @PostConstruct
+    public void init() {
+        webClient = WebClient.builder().baseUrl(config.getBotUrl()).build();
+    }
 
     public Mono<Void> sendData(Flux<TickerDto> stream) {
 
