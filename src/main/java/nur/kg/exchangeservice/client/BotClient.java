@@ -4,7 +4,7 @@ import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import nur.kg.domain.dto.TickerDto;
-import nur.kg.exchangeservice.config.AppProperties;
+import nur.kg.exchangeservice.config.BotProperties;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -20,11 +20,11 @@ import java.time.Duration;
 public class BotClient {
 
     private WebClient webClient;
-    private final AppProperties config;
+    private final BotProperties config;
 
     @PostConstruct
     public void init() {
-        webClient = WebClient.builder().baseUrl(config.getBotUrl()).build();
+        webClient = WebClient.builder().baseUrl(config.url()).build();
     }
 
     public Mono<Void> sendData(Flux<TickerDto> stream) {
