@@ -11,6 +11,7 @@ import com.bybit.api.client.domain.trade.response.OrderResponse;
 import com.bybit.api.client.restApi.BybitApiAsyncTradeRestClient;
 import com.bybit.api.client.service.BybitApiClientFactory;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
 import nur.kg.domain.enums.Exchange;
 import nur.kg.domain.enums.Symbol;
 import nur.kg.domain.request.OrderRequest;
@@ -18,6 +19,7 @@ import nur.kg.exchangeservice.config.BybitProperties;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
+@Log4j2
 @Component
 @RequiredArgsConstructor
 public class BybitTradingClient implements TradingClient {
@@ -39,7 +41,10 @@ public class BybitTradingClient implements TradingClient {
 
         return Mono.create(sink -> {
             BybitApiAsyncTradeRestClient client = factory().newAsyncTradeRestClient();
-            client.createOrder(req, resp -> sink.success());
+            client.createOrder(req, resp -> {
+                log.info("RESPONSE: {}", resp);
+                sink.success();
+            });
         });
     }
 

@@ -4,9 +4,40 @@ spring:
 
 bybit:
   domain: TESTNET
-  api-key: sSGYodkH8tHPoyerx9vwc9jW2hcs7ox2u4FU
-  api-secret: sSGYodkH8tHPoyerx9vwc9jW2hcs7ox2u4FU
+  api-key: jUJ6CR4LOJUZSgn6GL
+  api-secret: 3rvG05FBjpgwuQ7o77aZJzko7L0FTN7yXqu9
   ws-url: wss://stream-testnet.bybit.com/v5/public/spot
 
 bot:
   url: 'http://localhost:8081'
+logging:
+  level:
+    root: INFO
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "prometheus,health,info,metrics"
+  endpoint:
+    prometheus:
+      access: unrestricted
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+        http.client.requests: true
+        bot.decision.latency.ms: true
+        bot.order.submit.latency.ms: true
+        bot.order.ack.latency.ms: true
+        bot.e2e.latency.ms: true
+        venue.bybit.create_order.ms: true
+      percentiles:
+        bot.decision.latency.ms: 0.5,0.95,0.99
+        bot.order.submit.latency.ms: 0.5,0.95,0.99
+        bot.order.ack.latency.ms: 0.5,0.95,0.99
+        bot.e2e.latency.ms: 0.5,0.95,0.99
+        venue.bybit.create_order.ms: 0.5,0.95,0.99
