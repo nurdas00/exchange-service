@@ -16,7 +16,6 @@ import reactor.core.publisher.Mono;
 public class OrderController {
 
     private final OrderService orderService;
-
     @PostMapping
     public Mono<OrderResponse> placeOrder(@RequestBody Mono<OrderRequest> request) {
         return request.flatMap(orderService::placeOrder);
