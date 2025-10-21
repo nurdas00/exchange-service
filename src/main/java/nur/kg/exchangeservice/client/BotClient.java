@@ -28,7 +28,6 @@ public class BotClient {
     }
 
     public Mono<Void> sendData(Flux<TickerDto> stream) {
-
         return webClient.post()
                 .uri("/api/tickers/stream")
                 .contentType(MediaType.APPLICATION_NDJSON)
