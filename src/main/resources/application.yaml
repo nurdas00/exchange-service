@@ -4,8 +4,8 @@ spring:
 
 bybit:
   domain: TESTNET
-  api-key: rdfzAsd343wsBqw
-  api-secret: 3rvG05FBjpgwuQ7o77aZJzko7L0FTN7yXqu9
+  api-key: EkZNuyjyt3Pr6Ieqa8
+  api-secret: RnwoqKHgiKkiCvk7w5t5B0BA0DSyF7cAYoCH
   ws-url: wss://stream-testnet.bybit.com/v5/public/spot
 
 bot:

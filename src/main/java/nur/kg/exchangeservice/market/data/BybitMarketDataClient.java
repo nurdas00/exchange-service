@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
 import nur.kg.domain.enums.Exchange;
 import nur.kg.domain.enums.Symbol;
 import nur.kg.domain.model.Ticker;
@@ -22,6 +23,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Set;
 
+@Log4j2
 @Component
 @RequiredArgsConstructor
 public class BybitMarketDataClient implements MarketDataClient {
@@ -61,7 +63,10 @@ public class BybitMarketDataClient implements MarketDataClient {
                             try {
                                 JsonNode n = mapper.readTree(text);
                                 Ticker t = parseTicker(n);
-                                if (t != null) sink.next(t);
+                                if (t != null) {
+                                    log.info("Received ticker: {}}", text);
+                                    sink.next(t);
+                                }
                             } catch (Exception ignore) {
                             }
                         })
