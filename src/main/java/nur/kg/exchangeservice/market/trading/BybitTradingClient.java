@@ -39,30 +39,24 @@ public class BybitTradingClient implements TradingClient {
     public Mono<OrderResponse> placeOrder(OrderRequest r) {
         return getBalance()
                 .flatMap(balance -> {
-                    log.info("Balance: {}, Order request: {}", balance, r);
-                    if (balance.compareTo(BigDecimal.ZERO) <= 0) {
-                        return Mono.error(new IllegalStateException("Insufficient balance"));
-                    }
-
-                    BigDecimal price = r.limitPrice();
-                    if (price == null || price.compareTo(BigDecimal.ZERO) <= 0) {
-                        return Mono.error(new IllegalStateException("Limit price is required"));
-                    }
-
-                    BigDecimal qty = balance.multiply(BigDecimal.valueOf(0.01))
-                            .divide(price, 6, RoundingMode.DOWN);
+                    BigDecimal qty = balance.multiply(new BigDecimal("0.01"))
+                            .divide(r.limitPrice(), 6, RoundingMode.DOWN);
 
                     var req = TradeOrderRequest.builder()
-                            .category(CategoryType.LINEAR)
+                            .category(CategoryType.SPOT)
                             .symbol(r.symbol().name())
                             .side(Side.valueOf(r.side().name()))
                             .orderType(TradeOrderType.valueOf(r.type().name()))
                             .qty(qty.toPlainString())
-                            .price(price.toPlainString())
                             .timeInForce(TimeInForce.GOOD_TILL_CANCEL)
                             .positionIdx(PositionIdx.ONE_WAY_MODE)
+                            .takeProfit(r.tp() == null ? null : r.tp().toPlainString() )
+                            .stopLoss(  r.sl() == null ? null : r.sl().toPlainString() )
+                            .tpOrderType(TradeOrderType.valueOf(r.type().name()))
+                            .slOrderType(TradeOrderType.valueOf(r.type().name()))
                             .build();
 
+                    log.info("Order request: {}", req);
                     return Mono.create(sink -> {
                         BybitApiAsyncTradeRestClient client = factory().newAsyncTradeRestClient();
                         client.createOrder(req, resp -> {
@@ -74,7 +68,7 @@ public class BybitTradingClient implements TradingClient {
                 });
     }
 
-    private Mono<BigDecimal> getBalance() {
+    public Mono<BigDecimal> getBalance() {
         return Mono.create(sink -> {
             BybitApiAsyncAccountRestClient client = factory().newAsyncAccountRestClient();
             client.getWalletBalance(AccountDataRequest.builder()
@@ -128,7 +122,7 @@ public class BybitTradingClient implements TradingClient {
     private BigDecimal findCoinNode(JsonNode node, String coinName) {
         if (node.has("coin") && coinName.equalsIgnoreCase(node.path("coin").asText())) {
 
-            String[] balanceFields = {"availableToWithdraw", "available", "available_balance", "free", "avail"};
+            String[] balanceFields = {"availableToWithdraw", "available", "available_balance", "free", "equity"};
             for (String f : balanceFields) {
                 JsonNode v = node.path(f);
                 if (!v.isMissingNode() && (v.isNumber() || v.isTextual())) {
