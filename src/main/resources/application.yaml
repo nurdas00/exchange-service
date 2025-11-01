@@ -9,7 +9,12 @@ bybit:
   ws-url: wss://stream-testnet.bybit.com/v5/public/spot
 
 bot:
-  url: 'http://localhost:8081'
+  endpoints:
+    - name: sma
+      url: 'http://localhost:8081'
+    - name: rsi
+      url: 'http://localhost:8082'
+
 logging:
   level:
     root: INFO

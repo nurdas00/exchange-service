@@ -45,7 +45,7 @@ public class TickerRunner implements SmartLifecycle {
                 .onBackpressureLatest()
                 .sample(Duration.ofMillis(100));
 
-        Disposable d = bot.sendData(dtoStream).subscribe();
+        Disposable d = bot.sendDataToAll(dtoStream).subscribe();
         bag.add(d);
         log.info("TickerRunner started: {} sources", sources.size());
     }

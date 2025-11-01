@@ -25,7 +25,6 @@ import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 
 @Log4j2
 @Component
@@ -39,15 +38,14 @@ public class BybitTradingClient implements TradingClient {
     public Mono<OrderResponse> placeOrder(OrderRequest r) {
         return getBalance()
                 .flatMap(balance -> {
-                    BigDecimal qty = balance.multiply(new BigDecimal("0.01"))
-                            .divide(r.limitPrice(), 6, RoundingMode.DOWN);
 
                     var req = TradeOrderRequest.builder()
+                            .timeWindow(5000)
                             .category(CategoryType.SPOT)
                             .symbol(r.symbol().name())
                             .side(Side.valueOf(r.side().name()))
                             .orderType(TradeOrderType.valueOf(r.type().name()))
-                            .qty(qty.toPlainString())
+                            .qty(r.qty().toPlainString())
                             .timeInForce(TimeInForce.GOOD_TILL_CANCEL)
                             .positionIdx(PositionIdx.ONE_WAY_MODE)
                             .takeProfit(r.tp() == null ? null : r.tp().toPlainString() )
@@ -56,7 +54,7 @@ public class BybitTradingClient implements TradingClient {
                             .slOrderType(TradeOrderType.valueOf(r.type().name()))
                             .build();
 
-                    log.info("Order request: {}", req);
+                    log.info("Bot id: {}, Order request: {}", r.botId(), req);
                     return Mono.create(sink -> {
                         BybitApiAsyncTradeRestClient client = factory().newAsyncTradeRestClient();
                         client.createOrder(req, resp -> {
