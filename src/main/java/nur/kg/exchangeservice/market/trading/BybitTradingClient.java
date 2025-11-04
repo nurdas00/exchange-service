@@ -41,6 +41,7 @@ public class BybitTradingClient implements TradingClient {
 
                     var req = TradeOrderRequest.builder()
                             .timeWindow(5000)
+                            .price(r.limitPrice() == null ? null : r.limitPrice().toPlainString())
                             .category(CategoryType.SPOT)
                             .symbol(r.symbol().name())
                             .side(Side.valueOf(r.side().name()))
