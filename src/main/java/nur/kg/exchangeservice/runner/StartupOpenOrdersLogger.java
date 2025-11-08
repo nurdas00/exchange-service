@@ -4,20 +4,12 @@ import com.bybit.api.client.config.BybitApiConfig;
 import com.bybit.api.client.domain.CategoryType;
 import com.bybit.api.client.domain.trade.request.TradeOrderRequest;
 import com.bybit.api.client.service.BybitApiClientFactory;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import nur.kg.exchangeservice.config.BybitProperties;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.client.WebClient;
-
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
-import java.nio.charset.StandardCharsets;
 
 @Log4j2
 @Component
@@ -30,6 +22,7 @@ public class StartupOpenOrdersLogger {
 
     @PostConstruct
     public void logAllOpenOrders() {
+
         TradeOrderRequest.TradeOrderRequestBuilder openOrderRequest = TradeOrderRequest.builder();
         var client = BybitApiClientFactory.newInstance(props.apiKey(), props.apiSecret(), BybitApiConfig.TESTNET_DOMAIN).newTradeRestClient();
         Object raw = client.getOpenOrders(openOrderRequest.category(CategoryType.LINEAR).openOnly(0).symbol("BTCUSDT").build());
