@@ -22,6 +22,7 @@ public class StartupOpenOrdersLogger {
 
     @PostConstruct
     public void logAllOpenOrders() {
+
         TradeOrderRequest.TradeOrderRequestBuilder openOrderRequest = TradeOrderRequest.builder();
         var client = BybitApiClientFactory.newInstance(props.apiKey(), props.apiSecret(), BybitApiConfig.TESTNET_DOMAIN).newTradeRestClient();
         Object raw = client.getOpenOrders(openOrderRequest.category(CategoryType.LINEAR).openOnly(0).symbol("BTCUSDT").build());
