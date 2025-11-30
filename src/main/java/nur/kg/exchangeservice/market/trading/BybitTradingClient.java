@@ -1,5 +1,7 @@
 package nur.kg.exchangeservice.market.trading;
 
+//65170
+
 import com.bybit.api.client.config.BybitApiConfig;
 import com.bybit.api.client.domain.CategoryType;
 import com.bybit.api.client.domain.TradeOrderType;
@@ -39,21 +41,34 @@ public class BybitTradingClient implements TradingClient {
         return getBalance()
                 .flatMap(balance -> {
 
-                    var req = TradeOrderRequest.builder()
+                    TradeOrderType orderType = TradeOrderType.valueOf(r.type().name());
+
+                    var reqBuilder = TradeOrderRequest.builder()
                             .timeWindow(5000)
                             .price(r.limitPrice() == null ? null : r.limitPrice().toPlainString())
-                            .category(CategoryType.SPOT)
+                            .category(CategoryType.LINEAR)
                             .symbol(r.symbol().name())
                             .side(Side.valueOf(r.side().name()))
                             .orderType(TradeOrderType.valueOf(r.type().name()))
                             .qty(r.qty().toPlainString())
                             .timeInForce(TimeInForce.GOOD_TILL_CANCEL)
                             .positionIdx(PositionIdx.ONE_WAY_MODE)
-                            .takeProfit(r.tp() == null ? null : r.tp().toPlainString() )
-                            .stopLoss(  r.sl() == null ? null : r.sl().toPlainString() )
-                            .tpOrderType(TradeOrderType.valueOf(r.type().name()))
-                            .slOrderType(TradeOrderType.valueOf(r.type().name()))
-                            .build();
+                            .tpslMode("Full");
+
+                    if (r.tp() != null) {
+                        reqBuilder
+                                .takeProfit(r.tp().toPlainString())
+                                .tpOrderType(TradeOrderType.MARKET);
+                    }
+
+                    if (r.sl() != null) {
+                        reqBuilder
+                                .stopLoss(r.sl().toPlainString())
+                                .slOrderType(TradeOrderType.MARKET);
+                    }
+
+
+                    var req = reqBuilder.build();
 
                     log.info("Bot id: {}, Order request: {}", r.botId(), req);
                     return Mono.create(sink -> {
