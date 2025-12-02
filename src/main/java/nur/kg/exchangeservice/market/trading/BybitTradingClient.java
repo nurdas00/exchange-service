@@ -22,11 +22,14 @@ import lombok.extern.log4j.Log4j2;
 import nur.kg.domain.enums.Exchange;
 import nur.kg.domain.enums.Symbol;
 import nur.kg.domain.request.OrderRequest;
+import nur.kg.exchangeservice.config.AnalyticsProperties;
 import nur.kg.exchangeservice.config.BybitProperties;
 import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
+import java.util.Map;
 
 @Log4j2
 @Component
@@ -34,7 +37,9 @@ import java.math.BigDecimal;
 public class BybitTradingClient implements TradingClient {
 
     private final BybitProperties properties;
+    private final AnalyticsProperties analyticsProperties;
     private final ObjectMapper mapper;
+    private final WebClient webClient = WebClient.create();
 
     @Override
     public Mono<OrderResponse> placeOrder(OrderRequest r) {
@@ -49,34 +54,66 @@ public class BybitTradingClient implements TradingClient {
                             .category(CategoryType.LINEAR)
                             .symbol(r.symbol().name())
                             .side(Side.valueOf(r.side().name()))
-                            .orderType(TradeOrderType.valueOf(r.type().name()))
+                            .orderType(orderType)
                             .qty(r.qty().toPlainString())
                             .timeInForce(TimeInForce.GOOD_TILL_CANCEL)
                             .positionIdx(PositionIdx.ONE_WAY_MODE)
                             .tpslMode("Full");
 
                     if (r.tp() != null) {
-                        reqBuilder
-                                .takeProfit(r.tp().toPlainString())
+                        reqBuilder.takeProfit(r.tp().toPlainString())
                                 .tpOrderType(TradeOrderType.MARKET);
                     }
 
                     if (r.sl() != null) {
-                        reqBuilder
-                                .stopLoss(r.sl().toPlainString())
+                        reqBuilder.stopLoss(r.sl().toPlainString())
                                 .slOrderType(TradeOrderType.MARKET);
                     }
-
 
                     var req = reqBuilder.build();
 
                     log.info("Bot id: {}, Order request: {}", r.botId(), req);
+
                     return Mono.create(sink -> {
                         BybitApiAsyncTradeRestClient client = factory().newAsyncTradeRestClient();
+
                         client.createOrder(req, resp -> {
-                            log.info("RESPONSE: {}", resp);
+                            log.info("RAW RESPONSE: {}", resp);
+
                             OrderResponse response = mapper.convertValue(resp, OrderResponse.class);
+
+                            String orderId = null;
+                            try {
+                                Map<String, Object> map = mapper.convertValue(resp, Map.class);
+                                Map<String, Object> result = (Map<String, Object>) map.get("result");
+                                if (result != null) {
+                                    orderId = (String) result.get("orderId");
+                                }
+                                log.info("Extracted orderId: {}", orderId);
+                            } catch (Exception e) {
+                                log.error("Failed to extract orderId", e);
+                            }
                             sink.success(response);
+
+                            try {
+                                Map<String, Object> analyticsPayload = Map.of(
+                                        "bot_name", r.botId(),
+                                        "order_id", orderId
+                                );
+
+                                webClient.post()
+                                        .uri(analyticsProperties.url() + "/orders")
+                                        .bodyValue(analyticsPayload)
+                                        .retrieve()
+                                        .bodyToMono(Void.class)
+                                        .subscribe(
+                                                null,
+                                                err -> log.error("Analytics call failed", err)
+                                        );
+
+                            } catch (Exception e) {
+                                log.error("Failed sending analytics event", e);
+                            }
                         });
                     });
                 });
