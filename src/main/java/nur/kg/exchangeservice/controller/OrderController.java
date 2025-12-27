@@ -21,6 +21,8 @@ public class OrderController {
 
     @PostMapping
     public Mono<OrderResponse> placeOrder(@RequestBody Mono<OrderRequest> request) {
-        return request.doOnNext(o -> log.info("Receive request: {}",  o)).flatMap(orderService::placeOrder);
+        log.info("Receive request: {}",  request);
+
+        return request.flatMap(orderService::placeOrder);
     }
 }
