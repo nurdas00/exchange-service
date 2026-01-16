@@ -134,7 +134,6 @@ public class BybitTradingClient implements TradingClient {
                             if (list.isArray() && !list.isEmpty()) {
                                 found = findCoinInArray(list, "USDT");
                             }
-
                             if (found.compareTo(BigDecimal.ZERO) == 0) {
                                 found = findCoinRecursively(root, "USDT");
                             }
